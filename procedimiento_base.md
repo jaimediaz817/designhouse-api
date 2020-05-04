@@ -219,3 +219,158 @@ respectivos y las reglas requeridas (checkear password actual y que no sea la mi
 que pretende cambiar).
 
 
+### MODELO DE DESIGN Y MIGRACIONES (Sección #5)
+
+- Creación del modelo:
+[COMANDO]:
+php artisan make:model Models\\Design -m
+
+- ajustamos los campos necesarios para proceder a ejecutar la migración:
+[COMANDO]:
+php artisan migrate
+
+- Ahora se procede a crear el controlador
+[COMANDO]:
+php artisan make:controller Designs\\UploadController
+
+- Configuramos una ruta para las subidas - uploads
+- Después de configurar la validación (con validate), se procede a crear un fichero
+nuevo dentro de la carpeta conf:
+[FILE]
+site.php
+
+- Modificamos la migración de Designs para agregar nuevos campos:
+[COMANDO]:
+php artisan make:migration add_fields_to_designs --table=designs
+
+- Una vez se ha agregado la columna se procede a configurar el Storage en laravel:
+
+Se modifica el fichero:
+[ARCHIVO]
+filesSystems.php dentro de la carpeta CONF
+
+- Dentro de la carpeta STORAGE, se crea una carpeta:
+[CARPETA]:
+uploads
+
+- Dentro de uploas, se crean 3 sub carpetas más.
+
+- Después de probar en POSTMAN la correcta subida del archivo temporal, procederemos a crear un JOB:
+[COMANDO]:
+php artisan make:job UploadImage
+
+- Luego procedemos a instalar una librería para la gestión del tamaño de imágenes:
+[URL]:
+image.intervention.io/getting_started/installation
+
+- Instalación:
+[COMANDO]:
+composer require intervention/image
+
+- Implementar lo propio en el Job creado en pasos anteriores y revisar muy bien la 
+composición de las rutas relativas para acceder a las imágenes.
+
+
+### GUARDAR - CONFIGURAR SERVICIO DE AMAZON WEB SERVICES (AWS FILESYSTEM)
+- debemos ejecutar el siguiente comando:
+[COMANDO]:
+composer require league/flysystem-aws-s3-v3
+
+- Desde amazon, se procede a obtener la clave secreta para ingresarlas en el fichero .env
+
+- Después del proceso de creación de la politica:
+[CODIGO]
+[SOURCE]:
+    {
+    "Id": "Policy1588489761326",
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+        "Sid": "Stmt1588489739031",
+        "Action": [
+            "s3:DeleteObject",
+            "s3:GetObject"
+        ],
+        "Effect": "Allow",
+        "Resource": "arn:aws:s3:::trilogicprojects",
+        "Principal": "*"
+        }
+    ]
+    }
+
+
+### CONFIGURANDO QUEUES LARAVEL:
+-   Lo primero que tenemos que hacer es identificar la propiedad en .ENV:
+QUEUE_CONNECTION=sync
+QUEUE_CONNECTION=database (SE DEJA ASÍ)
+
+- Creamos una Queue a partir de una tabla (generamos la migración):
+[COMANDO]:
+php artisan queue:table
+php artisan migrate
+
+- volvemos a dejar en el fichero .ENV, la siguiente propiedad modificada en pasos anteriores:
+QUEUE_CONNECTION=sync (SE DEJA ASÍ)
+QUEUE_CONNECTION=database
+
+- Ahora procedemos a crear un Jork del job:
+[COMANDO]:
+php artisan queue:work 
+
+## FLUJO DE PRUEBA:
+1. en .ENV, se coloca:
+QUEUE_CONNECTION=sync (SE DEJA ASÍ)
+
+2. Se ejecutan los comandos para borrar la caché. (2 comandos):
+[COMANDO]:
+php artisan cache:clear
+php artisan config:cache
+
+3. Se apreciará cierto retardo al ejecutar la petición con POSTMAN
+
+4. Nuevamente se modifica el fichero .ENV:
+QUEUE_CONNECTION=database (SE DEJA ASÍ)
+
+5. Nuevamente se borra la caché
+6. Se ejecuta la petición y ésta responderá más rápido.
+7. Verificar en la tabla de jobs una pendiente por ejecutar en la cola
+8. Se ejecuta el comando:
+[COMANDO]:
+php artisan queue:work
+
+9. Volver a realizar una petición en POSTMAN y notará que se ejecutará
+nuevamente el proceso en la terminal como causa de haber ejecutado el work anterior.
+
+
+### ACTUALIZAR DESIGNS - UPDATE DESIGNS
+- Creamos la ruta en api.php y elcontrolador:
+[PATH]:
+Route::put('designs/{id}', 'Designs\DesignController@update');
+
+[COMANDO]:
+php artisan make:controller Designs\\DesignController
+
+- Se actualiza la información del Diseño sin repetir ningún campo 'title'
+
+### Crear politica de seguridad para el proceso actualización:
+- crear politica:
+[COMANDO]:
+php artisan make:policy DesignPolicy --model=Models\\Design
+
+- Después de crear la politica, se procede a registrarla en el provider:
+AuthServiceProvider
+
+- Después de modificar en el controlador Design y método update, se cambia el orden
+de la consulta para aplicar el método authorize.
+
+- Se implementa validación en:  App/Exceptions/Handler
+
+### Creando recurso para Design:
+- Se crea un recurso de la siguiente manera:
+[COMANDO]:
+php artisan make:resource DesignResource
+
+- Luego de crear el recurso para Designs, hacemos un paréntesis para agregar al
+modelo DESIGN un atributo get:
+
+- 

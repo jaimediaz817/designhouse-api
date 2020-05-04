@@ -13,9 +13,11 @@
         "fruitcake/laravel-cors": "^1.0",
         "grimzy/laravel-mysql-spatial": "^2.2",
         "guzzlehttp/guzzle": "^6.3",
+        "intervention/image": "^2.5",
         "laravel/framework": "^7.0",
         "laravel/tinker": "^2.0",
         "laravel/ui": "^2.0",
+        "league/flysystem-aws-s3-v3": "^1.0",
         "tymon/jwt-auth": "^1.0"
     },
     "require-dev": {

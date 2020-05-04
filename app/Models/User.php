@@ -69,6 +69,14 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     }
     // todo:add:end
 
+    // TODO: relations
+    public function designs()
+    {
+        return $this->hasMany(Design::class);
+    }
+    // TODO:relations:end
+
+
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
      *
