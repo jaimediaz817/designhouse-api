@@ -181,6 +181,10 @@ return [
         App\Providers\RouteServiceProvider::class,
 
         // TODO: add
+        App\Providers\RepositoryServiceProvider::class,
+        // TODO: add:end
+
+        // TODO: add
         Intervention\Image\ImageServiceProvider::class
         // TODO: add:end
     ],

@@ -15,20 +15,76 @@ return [
     |
     */
 
+    // 'paths' => ['api/*'],
+
+    // 'allowed_methods' => ['*'],
+
+    // 'allowed_origins' => ['*'],
+
+    // 'allowed_origins_patterns' => [],
+
+    // 'allowed_headers' => ['Content-Type', 'X-Requested-With'],
+
+    // 'exposed_headers' => ['*'],
+
+    // 'max_age' => false,
+
+    // 'supports_credentials' => false,
+    
+
+
+
+
+
+
+
+
+
+
+
     'paths' => ['api/*'],
 
+    /*
+    * Matches the request method. `[*]` allows all methods.
+    */
     'allowed_methods' => ['*'],
 
+    /*
+     * Matches the request origin. `[*]` allows all origins.
+     */
     'allowed_origins' => ['*'],
 
-    'allowed_origins_patterns' => [],
+    /*
+     * Matches the request origin with, similar to `Request::is()`
+     */
+    'allowed_origins_patterns' => ['*'],
 
-    'allowed_headers' => ['*'],
+    /*
+     * Sets the Access-Control-Allow-Headers response header. `[*]` allows all headers.
+     */
+    'allowed_headers' => [
+        '*',
+        'Content-Type',
+        'X-Auth-Token',
+        'Origin',
+        'Authorization',
+        'Access-Control-Allow-Origin',
+    ],
 
-    'exposed_headers' => [],
+    /*
+     * Sets the Access-Control-Expose-Headers response header.
+     */
+    'exposed_headers' => false,
 
-    'max_age' => 0,
+    /*
+     * Sets the Access-Control-Max-Age response header.
+     */
+    'max_age' => false,
 
+    /*
+     * Sets the Access-Control-Allow-Credentials header.
+     */
     'supports_credentials' => false,
+
 
 ];

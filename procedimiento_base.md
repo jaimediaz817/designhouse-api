@@ -107,6 +107,23 @@ php artisan ui vue --auth
 [COMANDO]:
 composer require grimzy/laravel-mysql-spatial
 
+- Bug de mysql 10 - mariadb 10:
+- Crear la siguiente función
+[BUG]:
+[SOURCE]:
+    CREATE DEFINER=`root`@`localhost` FUNCTION `st_distance_sphere`(`pt1` POINT, `pt2` POINT) RETURNS decimal(10,2)
+    BEGIN
+    return 6371000 * 2 * ASIN(SQRT(
+    POWER(SIN((ST_Y(pt2) - ST_Y(pt1)) * pi()/180 / 2),
+    2) + COS(ST_Y(pt1) * pi()/180 ) * COS(ST_Y(pt2) *
+    pi()/180) * POWER(SIN((ST_X(pt2) - ST_X(pt1)) *
+    pi()/180 / 2), 2) ));
+    END
+
+
+
+
+
 - Aplicar las configuraciones anotadas con //TODO: add en:
 la migración de usuarios para agregar algunas columnas, y en el model User
 
@@ -373,4 +390,426 @@ php artisan make:resource DesignResource
 - Luego de crear el recurso para Designs, hacemos un paréntesis para agregar al
 modelo DESIGN un atributo get:
 
+- Para poder que funcionen las imágenes alojadas en el disco local, es necesario crear un
+enlace simbólico:
+
+[COMANDO]:
+php artisan storage:link
+
+[TEST]:
+http://designhouse.test/storage/uploads/designs/thumbnail/1588555574_mes_que_un_club.jpg
+
+
+
+
+## DELETE design image
+- Se agrega la misma politica de seguridad implementada en update, ahora en el método delete
+- Se procede a definir otra excepción (OTRO IF), dentro de la politica creada en pasos anteriores
+
+
+### AGREGANDO TAGS 
+- Se logra accediendo a esta web:
+[URL]:
+https://github.com/cviebrock/eloquent-taggable
+
+[COMANDO]:
+composer require cviebrock/eloquent-taggable
+
+- Luego se procede a publicar el archivo de configuración:
+[COMANDO]:
+php artisan vendor:publish --provider="Cviebrock\EloquentTaggable\ServiceProvider" --tag "config"
+
+- Posteriormente publicar las migraciones:
+[COMANDO]:
+php artisan vendor:publish --provider="Cviebrock\EloquentTaggable\ServiceProvider" --tag "migrations"
+
+- Luego se procede a ejecutar las migraciones:
+[COMANDO]:
+composer dump-autoload
+php artisan migrate
+
+
+
+### SECCION PATRON REPOSITORIO 
+- Creamos un nuevo controlador:
+[COMANDO]:
+php artisan make:controller User\\UserController
+- en el proyecto dentro de la carpeta App, se creauna carpeta:
+
+[FOLDER]
+Repositories
+    + Contracts
+        +IDesign.php
+    + Eloquent
+
+## CREAMOS UN NUEVO PROVIDER:
+[COMANDO]:
+php artisan make:provider RepositoryServiceProvider
+
+- Implementamos lo propio en Boot para Bindear la interfaz con el repositorio respectivo
+- Posteriormente vamos a : config/app.php y registramos dicho service provider.
+
+## CREAMOS NUEVA EXCEPCIÓN:  EXCEPCION MODEL
+[COMANDO]:
+php artisan make:exception ModelNotDefined
+
+* NOTA: asegurarse desde POSTMAN tener configurado en las cabeceras:
+    - Accept: JSON
+    - Content-Type: JSON
+
+## CREAR UNA NUEVA CARPETA DENTRO DE REPOSITORY:
+[FOLDER]:
+Criteria
+
+
+[TAGS]: DEBUG, LARAVEL DEBUG
+## INSTALAR DEBUG EN LARAVEL (DEBUG BAR - BROWSER DEBUG)
+[COMANDO]:
+composer require barryvdh/laravel-debugbar --dev
+
+Copy the package config to your local config with the publish command:
+[COMANDO]:
+php artisan vendor:publish --provider="Barryvdh\Debugbar\ServiceProvider"
+
+
+## CREAR MIDDLEWARE: PROFILE JSON RESPONSE
+[COMANDO]:
+php artisan make:middleware ProfileJsonResponse
+
+- Luego lo registramos en el Kernel:
+[SOURCE]:
+    protected $middleware = [
+        \App\Http\Middleware\TrustProxies::class,
+        \Fruitcake\Cors\HandleCors::class,
+        \App\Http\Middleware\CheckForMaintenanceMode::class,
+        \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
+        \App\Http\Middleware\TrimStrings::class,
+        \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        // TODO: add:middleware
+        \App\Http\Middleware\ProfileJsonResponse::class,
+    ];
+
+- Desde postman intentar acceder a esta URL:
+[URL]:
+{{BASE_URL}}/users?_debug=true
+
+
+### SECCION 7 - LIKES Y COMENTARIOS
+- Creamos un modelo comentario con su respectiva migración:
+[COMANDO]:
+php artisan make:model Models\\Comment -m
+
+- Una vez diligenciados los campos entre ellos el polimórfico "Comentarios", 
+se ejecuta la migración:
+[COMANDO]:
+php artisan migrate
+
+- Crea el respectivo controlador de comentario:
+[COMANDO]:
+php artisan make:controller Designs\\CommentController
+
+- Creamos el repositorio Comentario:
+- Creamos el contrato para el Repositorio del Comentario.
+- Registramos en el provider Repository service la nueva entidad
+
+- Luego creamos el recurso:
+[COMANDO]:
+php artisan make:resource CommentResource
+
+- Procedemos a crear una politica para actualización de comentarios:
+[COMANDO]:
+php artisan make:policy CommentPolicy --model=Models\\Comment
+
+### FUNCIONALIDAD DE LIKES
+- Creamos un nuevo modelo con migración
+[COMANDO]:
+php artisan make:model Models\\Like -m
+
+- Desde diseños, relacionamos con la tabla polimórfica: Likes
+
+## ¡OJO!, en Comment (MODELO), también hacemos uso del Trait creado: Likeable:
+[SOURCE]:
+use Likeable
+
+## CREAR EL MODELO DE TEAM
+[COMANDO]
+php artisan make:model Models\\Team -m
+
+- Creamos luego el controlador
+[COMANDO]:
+php artisan make:controller Teams\\TeamsController --resource
+
+- Creo el contrato y repositorio para TEAM
+- Posterirmente registro dicho contrato y repositorio (Team) en el provider
+
+- Creamos en el model de Team la propiedad estática boot para capturar cuando se
+realice una inserción y poblar la tabla puente: team_user
+
+- Posteriormente se crea un recurso para team:
+[COMANDO]:
+php artisan make:resource TeamResource
+
+- Generamos una politica para el modelo Teams responsable de vigilar las actualizaciones
+y posibles borrados de datos:
+[COMANDO]:
+php artisan make:policy TeamPolicy --model=Models\\Team
+
+- en el método update:
+[SOURCE]
+    return $team->isOwnerOfTeam($team);
+
+- Luego registrar en el serviceProvider la politica
+
+## MODIFICANDO MIGRACIÓN DE TEAM PARA AGREGAR EL ID A LOS DISEÑOS:
+[COMANDO]:
+php artisan make:migration add_team_id_to_designs --table=designs
+
+- una vez agregado la columna: team_id dentro de Team migración, se ejecuta la migración:
+[COMANDO]:
+php artisan migrate
+
+
+## crear MODELO DE INVITADOS - INVITACIONES - INVITAR USUARIO A GRUPO
+- Se crea el modelo:
+[COMANDO]:
+php artisan make:model Models\\Invitation -m
+
+- creamos la propiedad protegida con:
+ceripient_email
+sender_id
+team_id
+token
+
+- Una vez se definen las relaciones en teams, users e invitations, se procede a ejeutar el comando:
+[COMANDO]:
+php artisan make:controller Teams\\InvitationsController
+
+- Luego ira la migración:
+[COMANDO]
+php artisan migrate
+
+## CREAMOS EL REPOSITORIO PARA LAS INVITACIONES
+- una vez creado contrato + implementación en la carpeta eloquent, se procede a configurar
+el provider del Repository
+
+- En el controlador escribimos la lógica necesaria para crear una invitación
+de usuario para unirse a un grupo
+
+- Creamos :
+[COMANDO]:
+php artisan make:mail SendInvitationToJoinTeam --markdown=emails.invitations.invite-new-user
+
+
+- Corregimos el tipo de dato de email_recipient
+php artisan make:migration change_field_to_invitations --table=invitations
+
+- Instalar este paquete de composer:
+composer require doctrine/dbal
+
+
+## CREANDO POLITICA PARA LAS INVITACIONES CON MODELO DE INVITATION
+[COMANDO]:
+php artisan make:policy InvitationPolicy --model=Models\\Invitation
+
+- Registramos la nueva politica en el service provider AuthServiceProvider.php
+
+
+
+### SECCION # 9 (CHAT - MODEL - MODELO,  )
+- Creamos el modelo para el chat y el modelo para Mensajes "Message"
+[COMANDO]:
+php artisan make:model Models\\Chat -m
+php artisan make:model Models\\Message -m
+
+la relación es la siguiente:
+
+| Chat |------<| Participants |>-----| User |
+  id_chat        id_chat               id_user
+                 id_user
+
+
+
+- En el modelo se define entonces:
+[SOURCE]:
+    public function participants()
+    {
+        return $this->belongsToMany(User::class, 'participants')
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);        
+    }
+
+    // Helper
+        - Dentro del modelo Message:
+        [SOURCE]:
+
+            protected $fillable = [
+            'user_id', 'chat_id', 'body', 'last_read'
+        ];
+
+        public function chat()
+        {
+            return $this->belongsTo(Chat::class);
+        }
+
+        public function sender()
+        {
+            return $this->belongsTo(User::class, 'user_id');
+        }
+
+- Creamos el controlador para chats:
+[COMANDO]:
+php artisan make:controller Chats\\ChatController
+
+- Se procede entonces a crear los contratos y repositorios para:
+Chat, Messages
+- Se registran en el serviceProvider del repositorio.
+- Se crean los recursos para gestionar respuestas:
+[COMANDO]:
+php artisan make:resource ChatResource
+php artisan make:resource MessageResource
+
+- Luego se agregan los campos respectivos en las migraciones
+- Finalmente, ejecutar las migraciones:
+[COMANDO]:
+php artisan migrate
+
+- Después de abundar en la implementación de los métodos del controlador para el Chat,
+crearemos una politica para el caso de: Messages
+[COMANDO]:
+php artisan make:policy MessagePolicy --model=Models\\Message
+
+- Luego registrar esta politica en el ServiceProvider respectivo: 
+
+## RUTAS PARA BÚSQUEDAS DE DISEÑOS
 - 
+
+
+
+### SECTION #10
+Funciones para análisis espacial
+
+- Lo primero será agregar una Ruta en api.php:
+[PATH]:
+[SOURCE]:
+Route::get('search/designers', 'User\userController@search');
+
+
+### SECCION 11:
+- AVATAR CON GRAVATAR:
+[URL]:
+http://www.gravatar.com/avatar/jaimeivan0017@gmail.com
+
+- Configurar CORS:
+[LINK]:
+https://github.com/fruitcake/laravel-cors
+
+- instalar a través de composer:
+[COMANDO]:
+composer require fruitcake/laravel-cors
+
+- Posteriormente hay que definir un Middleware en el KERNEL de la app
+- To allow CORS for all your routes, add the HandleCors middleware in the $middleware property of app/Http/Kernel.php class:
+
+[SOURCE]:
+    protected $middleware = [
+        // ...
+        \Fruitcake\Cors\HandleCors::class,
+    ];
+
+- Posteriormente, se crea configuración de cors:
+- The defaults are set in config/cors.php. Publish the config to copy the file to your own config:
+[COMANDO]:
+php artisan vendor:publish --tag="cors"
+
+- Una vez creado el fichero de configuración de cors en config de la app, se procede a agregar esta regla:
+
+[SOURCE]:
+'paths' => ['api/*'],
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### FRONTEND - Seccion - 12
+
+- NVM
+- para listar las versiones de node:
+[COMANDO]:
+nvm list
+
+- ver todas las versiones:
+[COMANDO]:
+nvm list available
+
+- instalar:
+[COMANDO]:
+nvm install 12.16.3
+
+- usar una versión:
+[COMANDO]:
+nvm use 12.16.03
+
+- IMPORTANTE: Si node da problemas al intentar ve la versión instalada, simplemente dentro
+de archivos de programa en C, se cambia de nombre a la carpeta node para reintentar asignar
+a través de NVM la versión a usar en el sistema operativo.
+
+NPX
+=> Crear proyecto FRONT:
+[COMANDO]:
+npx create-nuxt-app designhouse-client
+
+- Una vez seleccionado los parametros iniciales de configuración, se procede a accedera la
+carpeta del proyecto cliente y ejecutarlo:
+[PATH-IMAGE]:
+paramsConfig.png
+
+[COMANDO]:
+npm run dev
+
+- En el fichero .env del cliente agregar:
+[SOURCE]:
+    BASE_URL=http://designhouse.test:3000
+    API_BASE=http://designhouse.test/api
+
+- Configuramos luego en la KEY axios, la baseUrl (nuxt.config)
+
+- Posteriormente dentro del objeto head, definimos las paths de los scripts relativos a (nuxt.conf):
+1. jquery
+2. Bootstrap
+3. Fontawesome
+
+- procedemos a instalar en la consola:
+npm i node-sass sass-loader --save
+

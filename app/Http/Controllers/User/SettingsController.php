@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Rules\CheckSamePassword;
 use App\Rules\MatchOldPassword;
+// use Grimzy\LaravelMysqlSpatial\Doctrine\Point;
 use Grimzy\LaravelMysqlSpatial\Types\Point;
+
 use Illuminate\Http\Request;
 
 class SettingsController extends Controller
@@ -33,9 +35,9 @@ class SettingsController extends Controller
 
         $user->update([
             'name'              => $request->name,
-            'formatted_address' => $request->fotmatted_address,
+            'formatted_address' => $request->formatted_address,
             'location'          => $location,
-            'available_to_hire' => $request->available_for_hire,
+            'available_to_hire' => $request->available_to_hire,
             'about'             => $request->about,
             'tagline'           => $request->tagline,
         ]);

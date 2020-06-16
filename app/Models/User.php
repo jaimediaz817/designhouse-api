@@ -10,7 +10,7 @@ use Illuminate\Notifications\Notifiable;
 use Grimzy\LaravelMysqlSpatial\Eloquent\SpatialTrait;
 // use Illuminate\Auth\Notifications\VerifyEmail;
 use App\Notifications\VerifyEmail;
-
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements JWTSubject, MustVerifyEmail
 {
@@ -45,8 +45,18 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 
+        'remember_token',
     ];
+
+    protected $appends = [
+        'photo_url'
+    ];
+
+    public function getPhotoUrlAttribute()
+    {
+        return 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($this->email))) . 'jpg?s=200&d=mm';
+    }
 
     /**
      * The attributes that should be cast to native types.
@@ -69,12 +79,70 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
     }
     // todo:add:end
 
+
     // TODO: relations
     public function designs()
     {
         return $this->hasMany(Design::class);
     }
+
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }    
+
+    // Teams that the user belongs to
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class)
+                    ->withTimestamps();
+    }
+
+    public function invitations()
+    {
+        return $this->hasMany(Invitation::class, 'recipient_email', 'email');
+    }
+
+    public function chats()
+    {
+        return $this->belongsToMany(Chat::class, 'participants');
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function getChatWithUser($user_id)
+    {   
+        $chat = $this->chats()
+                    ->whereHas('participants', function( $query ) use ($user_id ) {
+                        $query->where('user_id', $user_id);
+                    })
+                    ->first();
+        return $chat;
+    }
     // TODO:relations:end
+
+
+
+
+
+    // Equipos propios 
+    public function ownedTeams()
+    {
+        return $this->teams()
+                    ->where('owner_id', $this->id);
+    }
+
+    // Es dueño del equipo?
+    public function isOwnerOfTeam($team)
+    {
+        return $this->teams()
+                ->where('id', $team->id)
+                ->where('owner_id', $this->id)
+                ->count();
+    }        
 
 
     /**

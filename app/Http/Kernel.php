@@ -20,6 +20,9 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        // TODO: add:middleware
+        \App\Http\Middleware\ProfileJsonResponse::class,
+        \Fruitcake\Cors\HandleCors::class,
     ];
 
     /**
@@ -40,7 +43,7 @@ class Kernel extends HttpKernel
 
         'api' => [
             'throttle:60,1',
-            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \Illuminate\Routing\Middleware\SubstituteBindings::class, // 'bindings',
         ],
     ];
 

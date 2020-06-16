@@ -36,12 +36,14 @@ class VerificationController extends Controller
 
         // check if the user has already verified acount
         if ($user->hasVerifiedEmail()) {
-            return response()->json(["errors" => [
+            return response()->json([
+                "errors" => [
                 "message" => "Email address already verified"
             ]], 442);                          
         }
 
         $user->markEmailAsVerified();
+
         event(new Verified($user));
 
         return response()->json(['message' => 'Email successfully verified'], 200);
